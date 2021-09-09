@@ -30,6 +30,22 @@ function offset_segments(segments, dist) {
     return segments.map(seg => offset_segment(...seg, dist));
 }
 
+function find_intersection(a1, a2, b1, b2) {
+    function check_intersection(A,B,C,D) {
+        // https://stackoverflow.com/a/9997374/10372825
+        function ccw(A,B,C) {
+            return (C.y-A.y) * (B.x-A.x) > (B.y-A.y) * (C.x-A.x);
+        }
+        return ccw(A,C,D) != ccw(B,C,D) and ccw(A,B,C) != ccw(A,B,D);
+    }
+    const a_slope = (a2.y-a1.y)/(a2.x-a1.x);
+    const b_slope = (b2.y-b1.y)/(b2.x-b1.x);
+    if (a_slope === b_slope || !check_intersection(a1, a2, b1, b2)) return null;
+    const intersect_x = (a_slope*a1.x - b_slope*b1.x + b1.y - a1.y)/(a_slope - b_slope)
+    const intersect_y = a_slope * (intersect_x - a1.x) + a1.y;
+    return { x: intersect_x, y: intersect_y };
+}
+
 function convert_segments_to_points(segments) {
     // TODO
 }
