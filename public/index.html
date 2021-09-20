@@ -23,7 +23,11 @@
     </head>
 
     <body>
-        <input type="range" min="1" max="100" value="20" class="fixed m-6" id="input-segment-approx-length">
+        <div class="fixed flex flex-col m-6 space-y-2">
+            <input type="range" min="1" max="100" value="20" id="input-segment-approx-length">
+            <input type="range" min="-100" max="100" value="20" id="input-spacing">
+        </div>
+
         <div id="display-wrapper" class="w-screen h-screen p-12 bg-gray-700">
             <svg id="display-graphic" class="h-full m-auto border-red-400 " viewBox="0 0 100 100">
                 <path id="base-path" d="M 10 10 C 10 60 50 0 50 50"

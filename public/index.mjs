@@ -56,29 +56,42 @@ function update_basepath_debug(path_points) {
     path_debug.setAttributeNS(null, 'd', path_debug_string);
 }
 
-function update_svg(segment_approx_length) {
+function update_svg(segment_approx_length, segment_spacing) {
     const path_points = get_points(basepath, segment_approx_length);
     //update_basepath_debug(path_points);
     const segs = convert_points_to_segments(path_points);
-    const offset_segs = offset_segments(segs, segment_approx_length);
+    let offset_segs = offset_segments(segs, segment_spacing);
     for (let i=1; i<offset_segs.length; ++i) {
         let lhs = offset_segs[i-1];
-        let rhs = offset_segs[i];
-        let intersect = find_intersection(...lhs, ...rhs);
-        if (intersect !== null) {
-            console.log('intersect', intersect);
+        let final_idx = null;
+        let final_intersect = null;
+        for (let j=i; j<offset_segs.length; ++j) {      // TODO: how to make intersections not n^2 
+            let rhs = offset_segs[j];
+            let this_intersect = find_intersection(...lhs, ...rhs);
+            if (this_intersect !== null) {
+                final_intersect = this_intersect;
+                final_idx = j;
+            }
         }
-        console.log(lhs, rhs);
+        if (final_intersect !== null) {
+            offset_segs[i-1][1]         = final_intersect;
+            offset_segs[final_idx][0]   = final_intersect;
+            offset_segs = offset_segs.slice(0, i) + offset_segs.slice(final_idx);
+        }
     }
-    console.log("\n\n\n")
     update_basepath_debug(offset_segs.flat());
 }
 
 (() => {
     const input_seg_len = document.getElementById('input-segment-approx-length');
+    const input_spacing = document.getElementById('input-spacing');
+
     input_seg_len.setAttributeNS(null, 'max', basepath.getTotalLength());
-    input_seg_len.addEventListener("mousemove", e => {
-        update_svg(parseInt(e.target.value));
-    });
+
+    function update_graphic() {
+        update_svg(parseInt(input_seg_len.value), parseInt(input_spacing.value));
+    }
+    input_seg_len.addEventListener("mousemove", update_graphic);
+    input_spacing.addEventListener("mousemove", update_graphic);
 })();
 
