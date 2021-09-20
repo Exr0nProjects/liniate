@@ -36,7 +36,7 @@ function find_intersection(a1, a2, b1, b2) {
         function ccw(A,B,C) {
             return (C.y-A.y) * (B.x-A.x) > (B.y-A.y) * (C.x-A.x);
         }
-        return ccw(A,C,D) != ccw(B,C,D) and ccw(A,B,C) != ccw(A,B,D);
+        return ccw(A,C,D) != ccw(B,C,D) && ccw(A,B,C) != ccw(A,B,D);
     }
     const a_slope = (a2.y-a1.y)/(a2.x-a1.x);
     const b_slope = (b2.y-b1.y)/(b2.x-b1.x);
@@ -61,8 +61,16 @@ function update_svg(segment_approx_length) {
     //update_basepath_debug(path_points);
     const segs = convert_points_to_segments(path_points);
     const offset_segs = offset_segments(segs, segment_approx_length);
-    //console.log(path_points, segs);
-    console.log(offset_segs, offset_segs.flat());
+    for (let i=1; i<offset_segs.length; ++i) {
+        let lhs = offset_segs[i-1];
+        let rhs = offset_segs[i];
+        let intersect = find_intersection(...lhs, ...rhs);
+        if (intersect !== null) {
+            console.log('intersect', intersect);
+        }
+        console.log(lhs, rhs);
+    }
+    console.log("\n\n\n")
     update_basepath_debug(offset_segs.flat());
 }
 
