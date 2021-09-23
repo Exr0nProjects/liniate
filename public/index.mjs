@@ -1,7 +1,5 @@
 "use strict";
 
-const basepath = document.getElementById('base-path');
-
 function get_points(dom_path, segment_approx_length) {
     const tot_len = dom_path.getTotalLength();
     let points = [];
@@ -46,21 +44,16 @@ function find_intersection(a1, a2, b1, b2) {
     return { x: intersect_x, y: intersect_y };
 }
 
-function convert_segments_to_points(segments) {
-    // TODO
+function create_path(path_points) {
+    if (path_points.length <= 0) return;
+    const new_path = document.createElementNS('http://www.w3.org/2000/svg',"path");
+    const path_string = `M ${path_points[0].x} ${path_points[0].y}` + path_points.slice(1).map(p => `L ${p.x} ${p.y}`).join(" ");
+    new_path.setAttributeNS(null, 'd', path_string);
+    return new_path;
 }
 
-function update_basepath_debug(path_points) {
-    const path_debug = document.getElementById("base-path-segment-debug");
-    const path_debug_string = `M ${path_points[0].x} ${path_points[0].y}` + path_points.slice(1).map(p => `L ${p.x} ${p.y}`).join(" ");
-    path_debug.setAttributeNS(null, 'd', path_debug_string);
-}
-
-function update_svg(segment_approx_length, segment_spacing) {
-    const path_points = get_points(basepath, segment_approx_length);
-    //update_basepath_debug(path_points);
-    const segs = convert_points_to_segments(path_points);
-    let offset_segs = offset_segments(segs, segment_spacing);
+function resolve_segments(offset_segs) {
+    let resolved_segs = [];
     for (let i=1; i<offset_segs.length; ++i) {
         let lhs = offset_segs[i-1];
         let final_idx = null;
@@ -74,22 +67,53 @@ function update_svg(segment_approx_length, segment_spacing) {
             }
         }
         if (final_intersect !== null) {
-            offset_segs[i-1][1]         = final_intersect;
-            offset_segs[final_idx][0]   = final_intersect;
-            offset_segs = offset_segs.slice(0, i) + offset_segs.slice(final_idx);
+            resolved_segs.push([offset_segs[i-1][0], final_intersect]);
+            offset_segs[final_idx][0] = final_intersect;
+            i = final_idx;
+        } else {
+            resolved_segs.push(offset_segs[i-1]);
         }
     }
-    update_basepath_debug(offset_segs.flat());
+    return resolved_segs;
+}
+
+function create_parallel_path(basepath, segment_approx_length, segment_spacing) {
+    const resolved_segs = resolve_segments(offset_segments(
+        convert_points_to_segments(
+            get_points(basepath, segment_approx_length)
+        ), segment_spacing)).flat();
+    return create_path(resolved_segs);
 }
 
 (() => {
+    const svg           = document.getElementById('display-graphic');
+    const svg_children  = document.getElementById('generated-path-wrapper');
     const input_seg_len = document.getElementById('input-segment-approx-length');
     const input_spacing = document.getElementById('input-spacing');
+    const basepath      = document.getElementById('base-path');
+
+    const svg_diagonal  = Math.sqrt(Math.pow(svg.viewBox.baseVal.width, 2) + Math.pow(svg.viewBox.baseVal.height, 2));
 
     input_seg_len.setAttributeNS(null, 'max', basepath.getTotalLength());
 
     function update_graphic() {
-        update_svg(parseInt(input_seg_len.value), parseInt(input_spacing.value));
+        while (svg_children.firstChild) svg_children.removeChild(svg_children.lastChild);
+        const spacing = parseInt(input_spacing.value)/10.0;
+        const doc_frag = document.createDocumentFragment();
+        for (let cur=basepath, shift=spacing; shift < svg_diagonal; shift += spacing) {
+            cur = create_parallel_path(cur, parseInt(input_seg_len.value), spacing);
+            if (!cur) break;
+            doc_frag.appendChild(cur);
+        }
+        
+        for (let cur=basepath, shift=spacing; shift < svg_diagonal; shift += spacing) {
+            cur = create_parallel_path(cur, parseInt(input_seg_len.value), -spacing);
+            if (!cur) break;
+            doc_frag.appendChild(cur);
+        }
+        svg_children.appendChild(doc_frag);
+        // https://stackoverflow.com/questions/7676006/obtaining-an-original-svg-viewbox-via-javascript
+        // https://stackoverflow.com/questions/10546135/appending-path-child-within-svg-using-javascript/10546700
     }
     input_seg_len.addEventListener("mousemove", update_graphic);
     input_spacing.addEventListener("mousemove", update_graphic);
